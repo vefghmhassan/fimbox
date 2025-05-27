@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyF2M - Movie Streaming</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #0f0f0f;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .movie-card {
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            border-radius: 12px;
+            background: #1a1a1a;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            height: 100%;
+            cursor: pointer;
+        }
+        .movie-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+        }
+        .movie-card:hover .movie-overlay {
+            opacity: 1;
+        }
+        .movie-card img {
+            width: 100%;
+            height: 400px;
+            object-fit: cover;
+            border-radius: 12px 12px 0 0;
+        }
+        .movie-info {
+            padding: 1rem;
+            background: linear-gradient(to top, #1a1a1a 80%, transparent);
+        }
+        .movie-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            padding: 1rem;
+            text-align: center;
+        }
+        .movie-overlay .btn {
+            margin-top: 1rem;
+            background-color: #e50914;
+            border: none;
+            color: white;
+            padding: 0.5rem 1.5rem;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .movie-overlay .btn:hover {
+            background-color: #f40612;
+        }
+        .rating {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 5px 10px;
+            border-radius: 5px;
+            color: #ffd700;
+            font-weight: bold;
+            z-index: 1;
+        }
+        .year {
+            color: #888;
+            font-size: 0.9rem;
+            margin-bottom: 0;
+        }
+        .section-title {
+            color: #fff;
+            margin: 2rem 0;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #333;
+            font-weight: bold;
+            font-size: 1.8rem;
+        }
+        .featured-section {
+            margin-bottom: 3rem;
+        }
+        .loading {
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #0f0f0f;
+        }
+        .error {
+            color: #ff4444;
+            text-align: center;
+            padding: 2rem;
+            background: rgba(255, 68, 68, 0.1);
+            border-radius: 8px;
+            margin: 2rem 0;
+        }
+        .navbar {
+            background: #1a1a1a !important;
+            padding: 1rem 0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #e50914 !important;
+        }
+        .card-title {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            color: #fff;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-film me-2"></i>MyF2M
+            </a>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div id="loading" class="loading">
+            <div class="spinner-border text-danger" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+        <div id="error" class="error" style="display: none;"></div>
+        <div id="content" style="display: none;">
+            <!-- Featured Content -->
+            <div class="featured-section">
+                <h2 class="section-title">
+                    <i class="fas fa-star me-2"></i>Featured Content
+                </h2>
+                <div class="row g-4" id="featured-content"></div>
+            </div>
+
+            <!-- Other Sections -->
+            <div id="other-sections"></div>
+        </div>
+    </div>
+
+    <script>
+        async function fetchHomeData() {
+            try {
+                const response = await fetch('/api/v1/movies/home');
+                if (!response.ok) throw new Error('Failed to fetch data');
+                const data = await response.json();
+                return data.data;
+            } catch (error) {
+                throw error;
+            }
+        }
+
+        function createMovieCard(movie) {
+            return `
+                <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+                    <div class="movie-card" onclick="window.location.href='${movie.link}'">
+                        <img src="${movie.image || 'https://via.placeholder.com/300x450'}" alt="${movie.title}">
+                        <div class="rating">
+                            <i class="fas fa-star"></i> ${movie.rating}
+                        </div>
+                        <div class="movie-info">
+                            <h5 class="card-title">${movie.title}</h5>
+                            <p class="year">${movie.year || 'N/A'}</p>
+                        </div>
+                        <div class="movie-overlay">
+                            <h5>${movie.title}</h5>
+                            <p class="year">${movie.year || 'N/A'}</p>
+                            <button class="btn">Watch Now</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderSection(section) {
+            return `
+                <div class="mb-5">
+                    <h2 class="section-title">
+                        <i class="fas fa-film me-2"></i>${section.title}
+                    </h2>
+                    <div class="row g-4">
+                        ${section.items.map(movie => createMovieCard(movie)).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        async function initializePage() {
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+            const content = document.getElementById('content');
+            const featuredContent = document.getElementById('featured-content');
+            const otherSections = document.getElementById('other-sections');
+
+            try {
+                const data = await fetchHomeData();
+                
+                // Render featured content
+                if (data.featured && data.featured.items.length > 0) {
+                    featuredContent.innerHTML = data.featured.items.map(movie => createMovieCard(movie)).join('');
+                }
+
+                // Render other sections
+                if (data.sections && data.sections.length > 0) {
+                    otherSections.innerHTML = data.sections.map(section => renderSection(section)).join('');
+                }
+
+                loading.style.display = 'none';
+                content.style.display = 'block';
+            } catch (err) {
+                loading.style.display = 'none';
+                error.style.display = 'block';
+                error.innerHTML = `
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    Failed to load content. Please try again later.
+                    <br>
+                    <small class="text-muted">${err.message}</small>
+                `;
+                console.error('Error:', err);
+            }
+        }
+
+        // Initialize the page when DOM is loaded
+        document.addEventListener('DOMContentLoaded', initializePage);
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 
