@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FilmBox - Movie Streaming API</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <base href="/fimbox/">
+    <style>
+        .movie-card {
+            transition: transform 0.3s;
+            height: 100%;
+        }
+        .movie-card:hover {
+            transform: translateY(-5px);
+        }
+        .movie-image {
+            height: 300px;
+            object-fit: cover;
+        }
+        .loading {
+            display: none;
+        }
+        .error-message {
+            display: none;
+            padding: 20px;
+            border-radius: 5px;
+            background-color: rgba(255, 0, 0, 0.1);
+            border: 1px solid rgba(255, 0, 0, 0.2);
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body class="bg-dark text-light">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom">
+        <div class="container">
+            <a class="navbar-brand" href="./">🎬 FilmBox</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="./" id="homeLink">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#categories" id="categoriesLink">Categories</a>
+                    </li>
+                </ul>
+                <form class="d-flex" id="searchForm">
+                    <input class="form-control me-2" type="search" placeholder="Search movies..." id="searchInput">
+                    <button class="btn btn-outline-light" type="submit">Search</button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div id="loading" class="text-center loading">
+            <div class="spinner-border text-light" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+
+        <div id="error" class="error-message">
+            <h4>Error</h4>
+            <p id="errorText"></p>
+        </div>
+
+        <div id="content">
+            <!-- Content will be loaded here -->
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://api-filmbox.vercel.app/api/v1';
+        
+        async function fetchMovies(endpoint) {
+            showLoading();
+            hideError();
+            try {
+                const response = await fetch(`${API_URL}${endpoint}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                showError('Failed to fetch movies. Please try again later.');
+                return null;
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('content').style.display = 'none';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('content').style.display = 'block';
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            const errorText = document.getElementById('errorText');
+            errorText.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('error').style.display = 'none';
+        }
+
+        function createMovieCard(movie) {
+            return `
+                <div class="col-md-3 mb-4">
+                    <div class="card movie-card bg-dark text-light border-secondary">
+                        <img src="${movie.image || 'https://via.placeholder.com/300x450'}" 
+                             class="card-img-top movie-image" 
+                             alt="${movie.title}">
+                        <div class="card-body">
+                            <h5 class="card-title">${movie.title}</h5>
+                            <p class="card-text">
+                                ${movie.year ? `<span class="badge bg-secondary me-2">${movie.year}</span>` : ''}
+                                ${movie.rating ? `<span class="badge bg-warning text-dark">${movie.rating}</span>` : ''}
+                            </p>
+                            <a href="${movie.link}" class="btn btn-primary btn-sm" target="_blank">
+                                <i class="fas fa-play me-1"></i> Watch Now
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function loadHome() {
+            const data = await fetchMovies('/movies/home');
+            if (!data) return;
+
+            let html = '<div class="row">';
+            
+            if (data.featured && data.featured.items.length > 0) {
+                html += '<h2 class="mb-4">Featured</h2>';
+                data.featured.items.forEach(movie => {
+                    html += createMovieCard(movie);
+                });
+            }
+
+            if (data.sections) {
+                data.sections.forEach(section => {
+                    if (section.items.length > 0) {
+                        html += `
+                            <div class="col-12">
+                                <h2 class="mt-5 mb-4">${section.title}</h2>
+                            </div>
+                        `;
+                        section.items.forEach(movie => {
+                            html += createMovieCard(movie);
+                        });
+                    }
+                });
+            }
+
+            html += '</div>';
+            document.getElementById('content').innerHTML = html;
+        }
+
+        async function loadCategories() {
+            const data = await fetchMovies('/movies/categories');
+            if (!data) return;
+
+            let html = `
+                <div class="row">
+                    <div class="col-12">
+                        <h2 class="mb-4">Categories</h2>
+                    </div>
+                </div>
+                <div class="row">
+            `;
+
+            data.forEach(category => {
+                html += `
+                    <div class="col-md-3 mb-4">
+                        <div class="card bg-dark text-light border-secondary">
+                            <div class="card-body">
+                                <h5 class="card-title">${category.title}</h5>
+                                <p class="card-text">
+                                    <span class="badge bg-secondary">${category.count} movies</span>
+                                </p>
+                                <a href="#" class="btn btn-primary btn-sm category-link" data-link="${category.link}">
+                                    Browse Movies
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            document.getElementById('content').innerHTML = html;
+        }
+
+        async function searchMovies(query) {
+            const data = await fetchMovies(`/movies/search?q=${encodeURIComponent(query)}`);
+            if (!data) return;
+
+            let html = `
+                <div class="row">
+                    <div class="col-12">
+                        <h2 class="mb-4">Search Results for "${query}"</h2>
+                    </div>
+                </div>
+                <div class="row">
+            `;
+
+            if (data.length > 0) {
+                data.forEach(movie => {
+                    html += createMovieCard(movie);
+                });
+            } else {
+                html += `
+                    <div class="col-12">
+                        <div class="alert alert-info">No movies found for "${query}"</div>
+                    </div>
+                `;
+            }
+
+            html += '</div>';
+            document.getElementById('content').innerHTML = html;
+        }
+
+        // Event Listeners
+        document.getElementById('homeLink').addEventListener('click', (e) => {
+            e.preventDefault();
+            loadHome();
+        });
+
+        document.getElementById('categoriesLink').addEventListener('click', (e) => {
+            e.preventDefault();
+            loadCategories();
+        });
+
+        document.getElementById('searchForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const query = document.getElementById('searchInput').value.trim();
+            if (query) {
+                searchMovies(query);
+            }
+        });
+
+        // Load home page on start
+        loadHome();
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 
