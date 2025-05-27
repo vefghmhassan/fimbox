@@ -28,14 +28,15 @@ jobs:
 
       - name: Build static files
         run: |
+          rm -rf dist
           mkdir -p dist
-          cp -r src/views/* dist/
           cp src/views/index.html dist/index.html
+          echo "# FilmBox API Frontend" > dist/README.md
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          branch: gh-pages
           folder: dist
+          branch: gh-pages
           clean: true
-          token: ${{ secrets.GITHUB_TOKEN }} 
+          single-commit: true 
