@@ -25,12 +25,13 @@ jobs:
 
       - name: Build static files
         run: |
-          mkdir -p public
-          cp -r src/views/* public/
-          cp -r public/* dist/
+          mkdir -p dist
+          cp -r src/views/* dist/
+          cp src/views/index.html dist/index.html
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           branch: gh-pages
-          folder: dist 
+          folder: dist
+          clean: true 
